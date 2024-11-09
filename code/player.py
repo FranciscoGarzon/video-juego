@@ -4,7 +4,7 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos, groups, collision_sprites):
         super().__init__(groups)
         self.image = pygame.image.load(join('images', 'player', 'player.png')).convert_alpha()
-        self.image = pygame.transform.scale(self.image, (50, 120))
+        self.image = pygame.transform.scale(self.image, (80, 180))
         self.rect = self.image.get_rect(center = pos)
         self.hitbox_rect = self.rect.inflate(-60, -90)
     

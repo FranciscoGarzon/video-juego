@@ -1,4 +1,3 @@
-import pygame
 from settings import *
 from player import Player
 from sprites import *
@@ -15,7 +14,6 @@ class Game:
         pygame.display.set_caption('Survivor')
         self.clock = pygame.time.Clock()
         self.running = True
-        self.show_menu = True  # Variable para controlar el menú de inicio
 
         # groups 
         self.all_sprites = AllSprites()
@@ -32,12 +30,35 @@ class Game:
         self.enemy_event = pygame.event.custom_type()
         pygame.time.set_timer(self.enemy_event, 300)
         self.spawn_positions = []
+        
+        # audio 
+        self.shoot_sound = pygame.mixer.Sound(join('audio', 'shoot.wav'))
+        self.shoot_sound.set_volume(0.2)
+        self.impact_sound = pygame.mixer.Sound(join('audio', 'impact.ogg'))
+        self.music = pygame.mixer.Sound(join('audio', 'music.wav'))
+        self.music.set_volume(0.5)
+        # self.music.play(loops = -1)
 
         # setup
+        self.load_images()
         self.setup()
+
+    def load_images(self):
+        self.bullet_surf = pygame.image.load(join('images', 'gun', 'bullet.png')).convert_alpha()
+
+        folders = list(walk(join('images', 'enemies')))[0][1]
+        self.enemy_frames = {}
+        for folder in folders:
+            for folder_path, _, file_names in walk(join('images', 'enemies', folder)):
+                self.enemy_frames[folder] = []
+                for file_name in sorted(file_names, key = lambda name: int(name.split('.')[0])):
+                    full_path = join(folder_path, file_name)
+                    surf = pygame.image.load(full_path).convert_alpha()
+                    self.enemy_frames[folder].append(surf)
 
     def input(self):
         if pygame.mouse.get_pressed()[0] and self.can_shoot:
+            self.shoot_sound.play()
             pos = self.gun.rect.center + self.gun.player_direction * 50
             Bullet(self.bullet_surf, pos, self.gun.player_direction, (self.all_sprites, self.bullet_sprites))
             self.can_shoot = False
@@ -53,7 +74,7 @@ class Game:
         map = load_pygame(join('data', 'maps', 'world.tmx'))
 
         for x, y, image in map.get_layer_by_name('Ground').tiles():
-            Sprite((x * TILE_SIZE, y * TILE_SIZE), image, self.all_sprites)
+            Sprite((x * TILE_SIZE,y * TILE_SIZE), image, self.all_sprites)
         
         for obj in map.get_layer_by_name('Objects'):
             CollisionSprite((obj.x, obj.y), obj.image, (self.all_sprites, self.collision_sprites))
@@ -63,7 +84,8 @@ class Game:
 
         for obj in map.get_layer_by_name('Entities'):
             if obj.name == 'Player':
-                self.player = Player((obj.x, obj.y), self.all_sprites, self.collision_sprites)
+                self.player = Player((obj.x,obj.y), self.all_sprites, self.collision_sprites)
+                self.gun = Gun(self.player, self.all_sprites)
             else:
                 self.spawn_positions.append((obj.x, obj.y))
 
@@ -81,56 +103,29 @@ class Game:
         if pygame.sprite.spritecollide(self.player, self.enemy_sprites, False, pygame.sprite.collide_mask):
             self.running = False
 
-    def display_menu(self):
-        # Colores y fuente del menú
-        title_font = pygame.font.Font(None, 74)
-        option_font = pygame.font.Font(None, 50)
-        
-        title_text = title_font.render("SURVIVOR", True, (255, 0, 0))
-        play_text = option_font.render("1. JUGAR", True, (255, 255, 255))
-        exit_text = option_font.render("2. SALIR", True, (255, 255, 255))
-
-        # Posición de los elementos
-        self.display_surface.fill((0, 0, 0))
-        self.display_surface.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, 100))
-        self.display_surface.blit(play_text, (WINDOW_WIDTH // 2 - play_text.get_width() // 2, 300))
-        self.display_surface.blit(exit_text, (WINDOW_WIDTH // 2 - exit_text.get_width() // 2, 400))
-        pygame.display.flip()
-
-    def menu_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1:  # Tecla 1 para jugar
-                    self.show_menu = False
-                elif event.key == pygame.K_2:  # Tecla 2 para salir
-                    self.running = False
-
     def run(self):
         while self.running:
-            if self.show_menu:
-                self.display_menu()
-                self.menu_events()
-            else:
-                # dt 
-                dt = self.clock.tick() / 1000
+            # dt 
+            dt = self.clock.tick() / 1000
 
-                # event loop 
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self.running = False
+            # event loop 
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                if event.type == self.enemy_event:
+                    Enemy(choice(self.spawn_positions), choice(list(self.enemy_frames.values())), (self.all_sprites, self.enemy_sprites), self.player, self.collision_sprites)
 
-                # update 
-                self.gun_timer()
-                self.input()
-                self.all_sprites.update(dt)
-                self.bullet_collision()
+            # update 
+            self.gun_timer()
+            self.input()
+            self.all_sprites.update(dt)
+            self.bullet_collision()
+            # self.player_collision()
 
-                # draw
-                self.display_surface.fill('black')
-                self.all_sprites.draw(self.player.rect.center)
-                pygame.display.update()
+            # draw
+            self.display_surface.fill('black')
+            self.all_sprites.draw(self.player.rect.center)
+            pygame.display.update()
 
         pygame.quit()
 
