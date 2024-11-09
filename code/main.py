@@ -6,6 +6,14 @@ from groups import AllSprites
 
 from random import randint, choice
 
+# Definir la función dibujar_texto
+def dibujar_texto(texto, fuente, color, x, y):
+    superficie_texto = fuente.render(texto, True, color)
+    rect_texto = superficie_texto.get_rect()
+    rect_texto.topleft = (x, y)
+    pantalla = pygame.display.get_surface()
+    pantalla.blit(superficie_texto, rect_texto)
+
 class Game:
     def __init__(self):
         # setup
@@ -14,6 +22,22 @@ class Game:
         pygame.display.set_caption('Survivor')
         self.clock = pygame.time.Clock()
         self.running = True
+
+        #textos
+        font = pygame.font.SysFont("Arial", 30)
+        texto = font.render("Iniciar", True, (255, 255, 255))
+        self.display_surface.blit(texto, (100, 100))
+        texto = font.render("Salir", True, (255, 255, 255))
+        self.display_surface.blit(texto, (100, 200))
+
+
+        #botones
+        boton_jugar = pygame.Rect(100, 100, 200, 50)
+        boton_salir = pygame.Rect(100, 200, 200, 50)
+
+        
+
+
 
         # groups 
         self.all_sprites = AllSprites()
@@ -121,6 +145,10 @@ class Game:
             self.all_sprites.update(dt)
             self.bullet_collision()
             # self.player_collision()
+
+            dibujar_texto("Forest War",
+                          pygame.font.SysFont("Arial", 30)
+                          (255, 255, 255), 300 , 100)
 
             # draw
             self.display_surface.fill('black')
